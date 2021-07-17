@@ -1,2 +1,22 @@
 c++ 참조 
 -https://modoocode.com/135
+
+*n개의 뉴런. 
+*t 시간상수 
+
+n <= c <= n^2 개의 시냅스 연결.
+
+CPN (Connection per Neuron) : 뉴런 당 평균 연결 수
+CPNN (Connection per Neuron / n) : 뉴런 당 평균 연결 비율 = 밀집도
+MF (Mean Frequency) : 뉴런 당 t 동안 진동하는(활성화되는) 수의 평균
+MSI (Mean Signal Intensity) : 뉴런당 신호 강도의 평균
+
+CPN = c / n
+CPNN = CPN / n = c / ( n^2 )
+
+
+
+
+ex) n=100 c=2500 t=100 이면
+CPN=25 CPNN=0.25 MSI=10 MF=4
+신호강도 분포 X~N(10,)
