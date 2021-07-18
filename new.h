@@ -39,18 +39,17 @@ class Brain{
     int MSI;
 
     void Terminate();
-    void GetInputSignal(); //sets input signals to some neurons
-    void SetOutputSignal();
 
     public:
+    vector<Neuron*> neurons; //for convenience and speed, neurons of brain is set public
+    Brain(int neurons,int connections);
+    static void Mutate(Brain* brain, double mutate_rate);
     void Propagate(); //propagates one time
     void CheckActive(); //check
-    vector<Neuron*> neurons;
-    Brain(int neurons,int connections);
     void ShowStatus();
     void Initialize();
     void Update(); //input->check->propagate->output->input->...
-    //외부에 대한 신호의 입출력 프로토콜이 필요.
+    ~Brain();
 };
 
 //////////////////////////////////////

@@ -4,32 +4,29 @@ using namespace newai;
 
 
 int main(){
-    clock_t startTime = clock();
 
 
-    Brain b1(1000,10000);
+    Brain b1(1000,5000);
     b1.Initialize();
-    int c=100;
+    int c=1000;
     while(true){
         system("clear");
-        for(int i=0;i<50;i++)
-            b1.neurons[i]->AddBuffer(i);
+        for(int i=0;i<100;i++)
+            b1.neurons[i]->AddBuffer(100);
         //b1.neurons[0]->ShowState();
         // b1.neurons[1]->AddBuffer(100);
         //b1.Update();
         b1.CheckActive();
-        b1.ShowStatus();
-        b1.Propagate();
         c--;
-        if(c==0)
-            cin>>c;
+        if(c==0){
+            b1.ShowStatus();
+           cin>>c;
+        }
+        b1.Propagate();
     }
 
 
      
-    clock_t endTime = clock();
-    clock_t elapsed = endTime - startTime;
-    cout<<"실행시간: "<<(double)elapsed/CLOCKS_PER_SEC<<endl;
 }
 
 //////////////////////////////////////
@@ -78,7 +75,7 @@ void Neuron::Propagate(){
     for(int i=0;i<size;i++)
         nexts[i]->AddBuffer(sign);
 
-    activated=false;
+    //activated=false;
 }
 void Neuron::AddNextNeuron(Neuron* next){
     nexts.push_back(next);
@@ -107,16 +104,20 @@ Brain::Brain(int _num_neurons, int _num_connections){
     MSI=MAX_NUM * num_neurons / num_connections;
 }
 void Brain::ShowStatus(){
-    cout<<"\n=========================================";
+    int count=0;
+    cout<<"\n\n=========================================";
     cout<<"  ";
     for(int i=0;i<num_neurons;i++){
         if(i%100==0)
             cout<<"\n  ";
-        if(neurons[i]->GetActivated())
+        if(neurons[i]->GetActivated()){
+            count++;
             cout<<"● ";
+        }
         else
             cout<<"○ ";
     }
+    cout<<"\n>activated: "<<count<<endl;
 }
 void Brain::Initialize(){
     //initialize neurons
@@ -151,14 +152,23 @@ void Brain::Propagate(){
         neu->Propagate();
     }
 }
-
 void Brain::Update(){
     //GetInputSignal();
     CheckActive();
     Propagate();
     //SetOuptputSignal();
 }
+void Brain::Mutate(Brain* brain,double mutate_rate){
+    int count=brain->num_neurons * mutate_rate;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> dis(0, brain->num_neurons-1); 
+    for(int i=0;i<count;i++){
+        Neuron* oldn=brain->neurons[dis(gen)];
+        
+    }
 
+}
 //////////////////////////////////////
 Body::Body(int _x, int _y){
     x=_x;
