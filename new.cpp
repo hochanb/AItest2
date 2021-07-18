@@ -7,17 +7,32 @@ int main(){
     clock_t startTime = clock();
 
 
-    Brain b1(10000,500000);
+    Brain b1(1000,10000);
     b1.Initialize();
-    for (int i = 0; i < 100; i++)
-        b1.neurons[i]->ShowState();
-    
-        
+    int c=100;
+    while(true){
+        system("clear");
+        for(int i=0;i<50;i++)
+            b1.neurons[i]->AddBuffer(i);
+        //b1.neurons[0]->ShowState();
+        // b1.neurons[1]->AddBuffer(100);
+        //b1.Update();
+        b1.CheckActive();
+        b1.ShowStatus();
+        b1.Propagate();
+        c--;
+        if(c==0)
+            cin>>c;
+    }
+
+
+     
     clock_t endTime = clock();
     clock_t elapsed = endTime - startTime;
     cout<<"실행시간: "<<(double)elapsed/CLOCKS_PER_SEC<<endl;
 }
 
+//////////////////////////////////////
 Neuron::Neuron(int _index){
     index=_index;
 }
@@ -53,6 +68,9 @@ void Neuron::CheckActive(){
     activated = buffer>=MAX_NUM;
     if(activated) buffer-=MAX_NUM;
 }
+bool Neuron::GetActivated(){
+    return activated;
+}
 void Neuron::Propagate(){
     if(!activated) return;
 
@@ -71,11 +89,11 @@ void Neuron::AddPrevNeuron(Neuron* prev){
 void Neuron::ShowState(){
     cout<<"//////////////////////////////"<<endl;
     cout<<"#"<<index<<" sign="<<sign<<" buffer="<<buffer<<" activated="<<activated<<endl;
-    cout<<"prev neurons: "<<endl;
+    cout<<"prev neurons ("<<prevs.size()<<"): "<<endl;
     for(auto neu : prevs)
         cout<<" #"<<neu->GetIndex();
     cout<<endl;
-    cout<<"next neurons: "<<endl;
+    cout<<"next neurons ("<<nexts.size()<<"): "<<endl;
     for(auto neu : nexts)
         cout<<" #"<<neu->GetIndex();
     cout<<'\n'<<endl;
@@ -88,7 +106,18 @@ Brain::Brain(int _num_neurons, int _num_connections){
     num_connections=_num_connections;
     MSI=MAX_NUM * num_neurons / num_connections;
 }
-
+void Brain::ShowStatus(){
+    cout<<"\n=========================================";
+    cout<<"  ";
+    for(int i=0;i<num_neurons;i++){
+        if(i%100==0)
+            cout<<"\n  ";
+        if(neurons[i]->GetActivated())
+            cout<<"● ";
+        else
+            cout<<"○ ";
+    }
+}
 void Brain::Initialize(){
     //initialize neurons
     for(int i=0;i<num_neurons;i++){
@@ -123,7 +152,7 @@ void Brain::Propagate(){
     }
 }
 
-void Brain::Step(){
+void Brain::Update(){
     //GetInputSignal();
     CheckActive();
     Propagate();
@@ -131,3 +160,18 @@ void Brain::Step(){
 }
 
 //////////////////////////////////////
+Body::Body(int _x, int _y){
+    x=_x;
+    y=_y;
+    r=127;
+    g=127;
+    b=127;
+}
+void Body::GetInput(){
+
+}
+void Body::Update(){
+    GetInput();
+    brain->Update();
+    //MoveBody();
+}

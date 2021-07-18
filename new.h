@@ -26,6 +26,7 @@ class Neuron{
     int GetIndex();
     int AddBuffer(int s); //add s to buffer
     void CheckActive(); //check if buffer is full enough (buffer>MAX_NUM)
+    bool GetActivated();
     void Propagate(); //if activated, propagate the sign to next neurons
     void AddNextNeuron(Neuron* next); //add next neuron's index to 'nexts'
     void AddPrevNeuron(Neuron* prev); //add prev neuron's index to 'prevs'
@@ -39,18 +40,46 @@ class Brain{
 
     void Terminate();
     void GetInputSignal(); //sets input signals to some neurons
-    void CheckActive(); //check
-    void Propagate(); //propagates one time
     void SetOutputSignal();
 
     public:
+    void Propagate(); //propagates one time
+    void CheckActive(); //check
     vector<Neuron*> neurons;
     Brain(int neurons,int connections);
+    void ShowStatus();
     void Initialize();
-    void Step(); //input->check->propagate->output->input->...
+    void Update(); //input->check->propagate->output->input->...
     //외부에 대한 신호의 입출력 프로토콜이 필요.
 };
 
+//////////////////////////////////////
+class Object{
+    protected:
+    //World* world; //world that object is belong to
+
+    public:
+    int x;
+    int y;
+
+    //color dimensions. 0~255
+    int r;
+    int g;
+    int b;
+};
+
+//////////////////////////////////////
+class Body : Object{
+    void GetInput();
+    void MoveBody(int right, int left, int up, int down); //0 or 1
+    public:
+    Brain* brain;   
+    Body(int x, int y);
+    void Update(); //get input -> update brain -> move body
+};
+
+
+//////////////////////////////////////
 class World{
     int width;
     int height;
@@ -59,17 +88,6 @@ class World{
 
 };
 
-class Object{
-    int x;
-    int y;
-
-};
-
-//////////////////////////////////////
-class Body : Object{
-    Brain* brain;    
-
-};
 
 }
 #endif
