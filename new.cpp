@@ -9,17 +9,20 @@ int main(){
     Brain b1(1000,5000);
     b1.Initialize();
     int c=1000;
+    int cc=0;
     while(true){
         system("clear");
-        for(int i=0;i<100;i++)
-            b1.neurons[i]->AddBuffer(100);
+        if(cc++<50000)
+        for(int i=0;i<10;i++)
+            b1.neurons[i]->AddBuffer(500);
         //b1.neurons[0]->ShowState();
         // b1.neurons[1]->AddBuffer(100);
         //b1.Update();
         b1.CheckActive();
         c--;
-        if(c==0){
+            cout<<"*"<<cc<<endl;
             b1.ShowStatus();
+        if(c<=0){
            cin>>c;
         }
         b1.Propagate();
@@ -60,6 +63,15 @@ int Neuron::RandomSign(int mean){
 int Neuron::AddBuffer(int s){
     buffer+=s;
     return buffer;
+}
+int Neuron::EnhanceFunction(int n){
+    int y=0;
+    return y;
+}
+void Neuron::Enhance(){
+    if(activated){
+
+    }
 }
 void Neuron::CheckActive(){
     activated = buffer>=MAX_NUM;
@@ -158,17 +170,17 @@ void Brain::Update(){
     Propagate();
     //SetOuptputSignal();
 }
-void Brain::Mutate(Brain* brain,double mutate_rate){
-    int count=brain->num_neurons * mutate_rate;
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> dis(0, brain->num_neurons-1); 
-    for(int i=0;i<count;i++){
-        Neuron* oldn=brain->neurons[dis(gen)];
+// void Brain::Mutate(Brain* brain,double mutate_rate){
+//     int count=brain->num_neurons * mutate_rate;
+//     std::random_device rd;
+//     std::mt19937 gen(rd());
+//     std::uniform_int_distribution<int> dis(0, brain->num_neurons-1); 
+//     for(int i=0;i<count;i++){
+//         Neuron* oldn=brain->neurons[dis(gen)];
         
-    }
+//     }
 
-}
+// }
 //////////////////////////////////////
 Body::Body(int _x, int _y){
     x=_x;

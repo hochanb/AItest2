@@ -19,12 +19,13 @@ class Neuron{
     vector<Neuron*> prevs; //indexes of previous neurons
 
     static int RandomSign(int mean);
-
+    static int EnhanceFunction(int n);
     public:
     Neuron(int _index); //constructor
     Neuron(int _index, int _sign); //constructor
     int GetIndex();
     int AddBuffer(int s); //add s to buffer
+    void Enhance();
     void CheckActive(); //check if buffer is full enough (buffer>MAX_NUM)
     bool GetActivated();
     void Propagate(); //if activated, propagate the sign to next neurons
@@ -49,7 +50,7 @@ class Brain{
     void ShowStatus();
     void Initialize();
     void Update(); //input->check->propagate->output->input->...
-    ~Brain();
+    //~Brain();
 };
 
 //////////////////////////////////////
