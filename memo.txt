@@ -31,3 +31,6 @@ MSI * MF = 단위 클럭 당 한 뉴런이 전달하는 신호 강도의 총량
 ////////
 학습 과정
 활성화 시 역치 감소. 그렇지 않을 경우 역치 증가. 퇴화속도는 강화속도보다 느리게?
+
+
+C.Elegans : https://github.com/Flowx08/Celegans-simulation.git
