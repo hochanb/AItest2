@@ -1,4 +1,4 @@
-#include "new.h"
+#include "progressive_evolution.h"
 using namespace newai;
 //////////////////////////////////////
 
@@ -35,10 +35,6 @@ int main(){
 //////////////////////////////////////
 Neuron::Neuron(int _index){
     index=_index;
-}
-Neuron::Neuron(int _index,int _sign){
-    index=_index;
-    sign=RandomSign(_sign);
 }
 int Neuron::GetIndex(){
     return index;
@@ -85,19 +81,20 @@ void Neuron::Propagate(){
 
     int size=nexts.size();
     for(int i=0;i<size;i++)
-        nexts[i]->AddBuffer(sign);
+        nexts[i]->AddBuffer(weights[i]);
 
     //activated=false;
 }
-void Neuron::AddNextNeuron(Neuron* next){
+void Neuron::AddNextNeuron(Neuron* next, int s){
     nexts.push_back(next);
+    weights.push_back(s);
 }
 void Neuron::AddPrevNeuron(Neuron* prev){
     prevs.push_back(prev);
 }
 void Neuron::ShowState(){
     cout<<"//////////////////////////////"<<endl;
-    cout<<"#"<<index<<" sign="<<sign<<" buffer="<<buffer<<" activated="<<activated<<endl;
+    cout<<"#"<<index<<" buffer="<<buffer<<" activated="<<activated<<endl;
     cout<<"prev neurons ("<<prevs.size()<<"): "<<endl;
     for(auto neu : prevs)
         cout<<" #"<<neu->GetIndex();
@@ -110,10 +107,26 @@ void Neuron::ShowState(){
 }
 
 //////////////////////////////////////
-Brain::Brain(int _num_neurons, int _num_connections){
-    num_neurons=_num_neurons;
-    num_synapses=_num_connections;
-    MSI=MAX_NUM * num_neurons / num_synapses;
+Brain::Brain(int _num_input,int _num_output){
+    num_inputs=_num_input;
+    num_outputs=_num_output;
+}
+void Brain::Mutate(MUTATION m){
+    switch(m){
+        case ADD_NEURON:
+
+            break;
+        case  
+    }
+}
+void Brain::AddNeuron(){
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> dis(0, num_neurons); 
+
+    //instantiate
+
+    return;
 }
 void Brain::ShowStatus(){
     int count=0;
@@ -133,25 +146,18 @@ void Brain::ShowStatus(){
 }
 void Brain::Initialize(){
     //initialize neurons
-    for(int i=0;i<num_neurons;i++){
-        neurons.push_back(new Neuron(i,MSI)); //create new neuron;
-        /* !! new Neuron MUST be deleted !! */
+    //input & output neurons
+    for(int i=0;i<num_inputs+num_outputs;i++){
+        // !! Neuron should be deleted !!
+        neurons.push_back(new Neuron(i));
+        num_neurons++;
     }
-    
-    //make connections
-    //random func from https://modoocode.com/304
-    std::random_device rd;
-    // random_device 를 통해 난수 생성 엔진을 초기화 한다.
-    std::mt19937 gen(rd());
-    // 0 부터 99 까지 균등하게 나타나는 난수열을 생성하기 위해 균등 분포 정의.
-    std::uniform_int_distribution<int> dis(0, num_neurons-1);
 
-    for(int i=0;i<num_synapses;i++){
-        int from = dis(gen);
-        int to = dis(gen);
-        //중복의 경우는 일단 무시
-        neurons[from]->AddNextNeuron(neurons[to]);
-        neurons[to]->AddPrevNeuron(neurons[from]);
+    //add basic neurons. 
+    //min num of neuron(except for in/out neurons) is min(num_input,num_output)
+    int num=num_inputs<num_outputs?num_inputs:num_outputs;
+    for(int i=0;i<num;i++){
+        AddNeuron();
     }
 }
 void Brain::CheckActive(){

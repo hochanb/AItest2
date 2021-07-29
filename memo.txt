@@ -34,3 +34,14 @@ MSI * MF = 단위 클럭 당 한 뉴런이 전달하는 신호 강도의 총량
 
 
 C.Elegans : https://github.com/Flowx08/Celegans-simulation.git
+
+
+
+//////////////
+progressive 방식
+변이 종류
+1. 뉴런 생성
+2. 연결 생성
+3. 연결 삭제
+(4. 뉴런 삭제는 연결 삭제의 결과로 나타날 수 있으므로 생략)
+
