@@ -6,28 +6,6 @@ using namespace newai;
 int main(){
 
 
-    Brain b1(1000,5000);
-    b1.Initialize();
-    int c=1000;
-    int cc=0;
-    while(true){
-        system("clear");
-        if(cc++<50000)
-        for(int i=0;i<10;i++)
-            b1.neurons[i]->AddBuffer(500);
-        //b1.neurons[0]->ShowState();
-        // b1.neurons[1]->AddBuffer(100);
-        //b1.Update();
-        b1.CheckActive();
-        c--;
-            cout<<"*"<<cc<<endl;
-            b1.ShowStatus();
-        if(c<=0){
-           cin>>c;
-        }
-        b1.Propagate();
-    }
-
 
      
 }
@@ -35,9 +13,17 @@ int main(){
 //////////////////////////////////////
 Neuron::Neuron(int _index){
     index=_index;
+    type=INTER_NEURON;
+}
+Neuron::Neuron(int _index,NEURON_TYPE t){
+    index=_index;
+    type=t;
 }
 int Neuron::GetIndex(){
     return index;
+}
+NEURON_TYPE Neuron::GetNeuronType(){
+    return type;
 }
 int Neuron::RandomSign(int mean){
     int c=MAX_NUM-mean;
@@ -85,11 +71,11 @@ void Neuron::Propagate(){
 
     //activated=false;
 }
-void Neuron::AddNextNeuron(Neuron* next, int s){
+void Neuron::AddNext(Neuron* next, int s){
     nexts.push_back(next);
     weights.push_back(s);
 }
-void Neuron::AddPrevNeuron(Neuron* prev){
+void Neuron::AddPrev(Neuron* prev){
     prevs.push_back(prev);
 }
 void Neuron::ShowState(){
@@ -112,22 +98,82 @@ Brain::Brain(int _num_input,int _num_output){
     num_outputs=_num_output;
 }
 void Brain::Mutate(MUTATION m){
-    switch(m){
-        case ADD_NEURON:
-
-            break;
-        case  
-    }
+    switch (m)
+    {
+    case ADD_NEURON:
+        AddNeuron();
+        break;
+    case ADD_SYNAPSE:
+        AddSynapse(nullptr,nullptr);
+        break;
+    // case DEL_SYNAPSE:
+    //     DelSynapse();
+    //     break;
+    default:
+        break;
+    }   
 }
 void Brain::AddNeuron(){
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> dis(0, num_neurons); 
 
-    //instantiate
+    //instantiate new neuron object
+    Neuron* nn=new Neuron(num_neurons++);
+    neurons.push_back(nn);
 
+    //log
+    MLog addneuron={ADD_NEURON,nn,nullptr,0};
+    log.push(addneuron);
+
+    //make initial connections
+    AddSynapse(nullptr,nn);
+    AddSynapse(nn,nullptr);
     return;
 }
+void Brain::AddSynapse(Neuron* from, Neuron* to){
+    //select two random neurons and connect them
+    //input neurons are not selected for next neuron
+    //output neurons are not selected for prev neuron
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> dis(0, num_neurons-1); 
+    
+    Neuron* n_from;
+    Neuron* n_to;
+    int weight=WEIGHT_BIAS;
+
+    if(from==nullptr){
+        int i_from;
+        do{
+            i_from=dis(gen);
+        }while(neurons[i_from]->GetNeuronType()==OUTPUT_NEURON);
+        n_from=neurons[i_from];
+    }
+    else n_from=from;
+
+    if(to==nullptr){
+        int i_to;
+        do{
+            i_to=dis(gen); 
+        }while(neurons[i_to]->GetNeuronType()==INPUT_NEURON);
+        n_to=neurons[i_to];
+    }
+    else n_to=to;
+    
+    std::uniform_int_distribution<int> dis2(-1,1);
+    for(int i=0;i<WEIGHT_RANGE;i++)
+        weight+=dis2(gen);
+    
+
+
+    n_from->AddNext(n_to,weight);
+    n_to->AddPrev(n_from);
+    
+    //add log
+    MLog addsynapse={ADD_SYNAPSE,from,to,weight};
+    log.push(addsynapse);
+}
+// void Brain::DelSynapse(Neuron* from, Neuron* to){
+    
+// }
 void Brain::ShowStatus(){
     int count=0;
     cout<<"\n\n=========================================";
@@ -146,17 +192,26 @@ void Brain::ShowStatus(){
 }
 void Brain::Initialize(){
     //initialize neurons
-    //input & output neurons
-    for(int i=0;i<num_inputs+num_outputs;i++){
+
+    int count=0;
+    
+    //input neurons
+    for(;count<num_inputs;count++){
         // !! Neuron should be deleted !!
-        neurons.push_back(new Neuron(i));
+        neurons.push_back(new Neuron(count,INPUT_NEURON));
         num_neurons++;
     }
 
-    //add basic neurons. 
+    //output neurons
+    for(;count<num_outputs;count++){
+        // !! Neuron should be deleted !!
+        neurons.push_back(new Neuron(count,OUTPUT_NEURON));
+        num_neurons++;
+    }
+    //add minimum neurons. 
     //min num of neuron(except for in/out neurons) is min(num_input,num_output)
-    int num=num_inputs<num_outputs?num_inputs:num_outputs;
-    for(int i=0;i<num;i++){
+    int min=num_inputs<num_outputs?num_inputs:num_outputs;
+    for(int i=0;i<min;i++){
         AddNeuron();
     }
 }
@@ -176,17 +231,7 @@ void Brain::Update(){
     Propagate();
     //SetOuptputSignal();
 }
-// void Brain::Mutate(Brain* brain,double mutate_rate){
-//     int count=brain->num_neurons * mutate_rate;
-//     std::random_device rd;
-//     std::mt19937 gen(rd());
-//     std::uniform_int_distribution<int> dis(0, brain->num_neurons-1); 
-//     for(int i=0;i<count;i++){
-//         Neuron* oldn=brain->neurons[dis(gen)];
-        
-//     }
 
-// }
 //////////////////////////////////////
 Body::Body(int _x, int _y){
     x=_x;
