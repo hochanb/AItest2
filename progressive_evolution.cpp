@@ -3,8 +3,15 @@ using namespace newai;
 //////////////////////////////////////
 
 
-int main(){
 
+int randnnn(int start, int end){
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> dis(start, end); //p=1/2
+    return dis(gen);
+}
+
+int main(){
 
 
      
@@ -25,22 +32,7 @@ int Neuron::GetIndex(){
 NEURON_TYPE Neuron::GetNeuronType(){
     return type;
 }
-int Neuron::RandomSign(int mean){
-    int c=MAX_NUM-mean;
-    std::random_device rd;
-    // random_device 를 통해 난수 생성 엔진을 초기화 한다.
-    std::mt19937 gen(rd());
-    // 0 부터 99 까지 균등하게 나타나는 난수열을 생성하기 위해 균등 분포 정의.
-    std::uniform_int_distribution<int> dis(0, 1); //p=1/2
 
-    for(int i=0;i<c;i++){
-        if(dis(gen)==0)
-            mean++;
-        else
-            mean--;
-    }
-    return mean;
-}
 
 int Neuron::AddBuffer(int s){
     buffer+=s;
@@ -78,16 +70,19 @@ void Neuron::AddNext(Neuron* next, int s){
 void Neuron::AddPrev(Neuron* prev){
     prevs.push_back(prev);
 }
-void Neuron::ShowState(){
-    cout<<"//////////////////////////////"<<endl;
+void Neuron::ShowStatus(){
+    cout<<"===================================="<<endl;
     cout<<"#"<<index<<" buffer="<<buffer<<" activated="<<activated<<endl;
+    
     cout<<"prev neurons ("<<prevs.size()<<"): "<<endl;
     for(auto neu : prevs)
         cout<<" #"<<neu->GetIndex();
     cout<<endl;
+
     cout<<"next neurons ("<<nexts.size()<<"): "<<endl;
-    for(auto neu : nexts)
-        cout<<" #"<<neu->GetIndex();
+    for(int i=0;i<nexts.size();i++)
+        cout<<" #"<<nexts[i]->GetIndex()<<"["<<weights[i]<<"]"<<endl;
+    
     cout<<'\n'<<endl;
 
 }
@@ -96,6 +91,12 @@ void Neuron::ShowState(){
 Brain::Brain(int _num_input,int _num_output){
     num_inputs=_num_input;
     num_outputs=_num_output;
+}
+int Brain::RandomWeight(){
+    int w=WEIGHT_BIAS;
+    for(int i=0;i<WEIGHT_RANGE;i++)
+        w+=randnnn(-1,1);
+    return ;
 }
 void Brain::Mutate(MUTATION m){
     switch (m)
@@ -132,18 +133,15 @@ void Brain::AddSynapse(Neuron* from, Neuron* to){
     //select two random neurons and connect them
     //input neurons are not selected for next neuron
     //output neurons are not selected for prev neuron
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> dis(0, num_neurons-1); 
     
     Neuron* n_from;
     Neuron* n_to;
-    int weight=WEIGHT_BIAS;
+    int weight;
 
     if(from==nullptr){
         int i_from;
         do{
-            i_from=dis(gen);
+            i_from=randnnn(0, num_neurons-1);
         }while(neurons[i_from]->GetNeuronType()==OUTPUT_NEURON);
         n_from=neurons[i_from];
     }
@@ -152,28 +150,87 @@ void Brain::AddSynapse(Neuron* from, Neuron* to){
     if(to==nullptr){
         int i_to;
         do{
-            i_to=dis(gen); 
+            i_to=randnnn(0, num_neurons-1);
         }while(neurons[i_to]->GetNeuronType()==INPUT_NEURON);
         n_to=neurons[i_to];
     }
     else n_to=to;
+
+    //if connection already exists, return
+    for( int i=0;i<n_from->nexts.size();i++)
+        if(n_from->nexts[i]==n_to)
+            return;
     
-    std::uniform_int_distribution<int> dis2(-1,1);
-    for(int i=0;i<WEIGHT_RANGE;i++)
-        weight+=dis2(gen);
-    
+    //give random weight
+    weight=RandomWeight();
 
 
     n_from->AddNext(n_to,weight);
     n_to->AddPrev(n_from);
     
     //add log
-    MLog addsynapse={ADD_SYNAPSE,from,to,weight};
+    MLog addsynapse={ADD_SYNAPSE,n_from,n_to,weight};
     log.push(addsynapse);
 }
-// void Brain::DelSynapse(Neuron* from, Neuron* to){
+void Brain::ModWeight(Neuron* from, Neuron* to, int add){
+    //four cases:
+    //1. from->to : but not sure two are connected
+    //2. rand->to
+    //3. from->rand
+    //4. rand->rand
+
+    int i_from, i_to; //n_from==n_to->prevs[i_from] / n_to==n_from->nexts[i_to]
+    Neuron* n_from;
+    Neuron* n_to;
+    do{
+        if(from != nullptr){
+            n_from = from;
+            bool connected=false;
+            if(to != nullptr){
+                //check if two are connected
+                for(int i=0;i<from->nexts.size();i++)
+                    if(from->nexts[i]==to){
+                        connected=true;
+                        n_to=to;
+                        i_to=i;
+                        break;
+                    }
+            }
+            if(!connected){
+                i_to=randnnn(0,from->nexts.size()-1);
+                n_to=from->nexts[i_to];
+            }
+            //find i_from
+            for(int i=0;i<to->prevs.size();i++)
+                if(to->prevs[i]==from){
+                    i_from=i;
+                    break;
+                }
+        }
+        else{ //from==nullptr
+            if(to==nullptr)
+                to=neurons[randnnn(num_inputs+num_outputs,num_neurons-1)]; //interneuron only
+            n_to=to;
+            i_from=randnnn(0,to->prevs.size()-1);
+            n_from=to->prevs[i_from];
+
+            //find i_to
+            for(int i=0;i<from->nexts.size();i++)
+                if(from->nexts[i]==to){
+                    i_to=i;
+                    break;
+                }
+        }
+    }
+    while(n_from==nullptr || n_to==nullptr); //if unconnected neuron has been chosen, retry
     
-// }
+    int w=RandomWeight();
+    n_from->weights[i_to]=w;
+
+    MLog modweight={MOD_WEIGHT,n_from,n_to,w};
+    log.push(modweight);
+}
+
 void Brain::ShowStatus(){
     int count=0;
     cout<<"\n\n=========================================";

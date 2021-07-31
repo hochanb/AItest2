@@ -13,6 +13,8 @@ using namespace std;
 
 namespace newai{
 
+class Neuron; //declaration
+
 enum MUTATION{
     ADD_NEURON =0,
     ADD_SYNAPSE=1,
@@ -38,13 +40,13 @@ class Neuron{
     int buffer=0; //buffer for signal accumulation
     bool activated=false; //
     NEURON_TYPE type;
+
+    static int EnhanceFunction(int n);
+
+    public:
     vector<int> weights; //weight of sign to each next neurons. two vectors are pair
     vector<Neuron*> nexts; //indexes of next neurons
     vector<Neuron*> prevs; //indexes of previous neurons
-
-    static int RandomSign(int mean);
-    static int EnhanceFunction(int n);
-    public:
     Neuron(int _index); //default type is interneuron
     Neuron(int _index,NEURON_TYPE t); //for in/out neurons
     int GetIndex();
@@ -56,7 +58,8 @@ class Neuron{
     void Propagate(); //if activated, propagate the sign to next neurons
     void AddNext(Neuron* next, int s); //add next neuron's index to 'nexts'
     void AddPrev(Neuron* prev); //add prev neuron's index to 'prevs'
-    void ShowState();
+    void ShowStatus();
+
 };
 
 class Brain{
@@ -66,9 +69,11 @@ class Brain{
     //int num_synapses=0; //number of synapses. decides average num of synapse of each neuron. [ n ~ n^2 ]. 
     //int MSI; //mean sign intensity
 
+    static int RandomWeight();
     void AddNeuron();
     void AddSynapse(Neuron* from, Neuron* to); //nullptr->random sel
     //void DelSynapse(Neuron* from, Neuron* to); //nullptr->random sel
+    void ModWeight(Neuron* from, Neuron* to, int add); //nullptr, 0->random sel
     void Terminate();
     void Mutate(MUTATION m);
 
