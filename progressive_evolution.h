@@ -8,8 +8,8 @@
 using namespace std;
 
 #define MAX_NUM 1000
-#define WEIGHT_BIAS 100 //bias, mean
-#define WEIGHT_RANGE 200 //+- range
+#define WEIGHT_BIAS 50 //bias, mean
+#define WEIGHT_RANGE 100 //+- range
 
 namespace newai{
 
@@ -66,26 +66,26 @@ class Brain{
     int num_inputs;
     int num_outputs;
     int num_neurons=0; //number of neurons
+    string name;
     //int num_synapses=0; //number of synapses. decides average num of synapse of each neuron. [ n ~ n^2 ]. 
     //int MSI; //mean sign intensity
 
     static int RandomWeight();
-    void AddNeuron();
-    void AddSynapse(Neuron* from, Neuron* to); //nullptr->random sel
+    void AddNeuron(Neuron* prev, Neuron* next); //nullptr->random sel
+    int AddSynapse(Neuron* from, Neuron* to); //nullptr->random sel 0:fail 1:success
     //void DelSynapse(Neuron* from, Neuron* to); //nullptr->random sel
     void ModWeight(Neuron* from, Neuron* to, int add); //nullptr, 0->random sel
     void Terminate();
-    void Mutate(MUTATION m);
+    int Mutate(MUTATION m);
 
     public:
+    Brain(string name, int num_input,int num_output);
     stack<MLog> log;
     vector<Neuron*> neurons; //for convenience and speed, neurons of brain is set public
-    Brain(int num_input,int num_output);
-    //static void Mutate(Brain* brain, double mutate_rate);
+    void ManualControl();
+    void Initialize();
     void Propagate(); //propagates one time
     void CheckActive(); //check
-    void ShowStatus();
-    void Initialize();
     void Update(); //input->check->propagate->output->input->...
     //~Brain();
 };

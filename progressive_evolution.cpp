@@ -11,11 +11,6 @@ int randnnn(int start, int end){
     return dis(gen);
 }
 
-int main(){
-
-
-     
-}
 
 //////////////////////////////////////
 Neuron::Neuron(int _index){
@@ -71,50 +66,120 @@ void Neuron::AddPrev(Neuron* prev){
     prevs.push_back(prev);
 }
 void Neuron::ShowStatus(){
+    string typeofneuron;
+    if(type==INPUT_NEURON) typeofneuron="INPUT";
+    else if(type==OUTPUT_NEURON) typeofneuron="OUTPUT";
+    else typeofneuron="INTER";
+
     cout<<"===================================="<<endl;
-    cout<<"#"<<index<<" buffer="<<buffer<<" activated="<<activated<<endl;
+    cout<<"#"<<index<<" "<<typeofneuron<<" buffer="<<buffer<<" activated="<<activated<<endl;
     
-    cout<<"prev neurons ("<<prevs.size()<<"): "<<endl;
+    cout<<"prev neurons ("<<prevs.size()<<"): ";
     for(auto neu : prevs)
         cout<<" #"<<neu->GetIndex();
     cout<<endl;
 
-    cout<<"next neurons ("<<nexts.size()<<"): "<<endl;
+    cout<<"next neurons ("<<nexts.size()<<"): ";
     for(int i=0;i<nexts.size();i++)
-        cout<<" #"<<nexts[i]->GetIndex()<<"["<<weights[i]<<"]"<<endl;
+        cout<<" #"<<nexts[i]->GetIndex()<<"["<<weights[i]<<"]";
     
     cout<<'\n'<<endl;
 
 }
 
 //////////////////////////////////////
-Brain::Brain(int _num_input,int _num_output){
+Brain::Brain(string _name, int _num_input,int _num_output){
+    name=_name;
     num_inputs=_num_input;
     num_outputs=_num_output;
 }
+void Brain::Initialize(){
+    //initialize neurons
+
+    if(num_neurons>num_inputs+num_outputs) return; //no more init 
+    
+    int count=0;
+    cout<<endl;
+
+    //input neurons
+    for(int i=0;i<num_inputs;i++){
+        cout<<" $init input neuron #"<<count<<endl;
+        // !! Neuron should be deleted !!
+        neurons.push_back(new Neuron(count++,INPUT_NEURON));
+        num_neurons++;
+    }
+
+    //output neurons
+    for(int i=0;i<num_outputs;i++){
+        cout<<" $init output neuron #"<<count<<endl;
+        // !! Neuron should be deleted !!
+        neurons.push_back(new Neuron(count++,OUTPUT_NEURON));
+        num_neurons++;
+    }
+    //add minimum neurons. 
+    //min num of neuron(except for in/out neurons) is min(num_input,num_output)
+    int min=num_inputs<num_outputs?num_inputs:num_outputs;
+    for(int i=0;i<min;i++){
+        Neuron* nn=new Neuron(num_neurons++);
+        neurons.push_back(nn);
+        cout<<" $init inter neuron #"<<num_neurons-1<<endl;
+    }
+
+    //initial connections
+    for(auto neu : neurons){
+        NEURON_TYPE t=neu->GetNeuronType();
+        if(t==INPUT_NEURON || t==INTER_NEURON) 
+            AddSynapse(neu,nullptr); 
+        if(t==OUTPUT_NEURON || t==INTER_NEURON)
+            AddSynapse(nullptr,neu);
+        
+    }
+}
+
+// void Brain::ShowStatus(){
+//     int count=0;
+//     cout<<"\n\n=========================================";
+//     cout<<"  ";
+//     for(int i=0;i<num_neurons;i++){
+//         if(i%100==0)
+//             cout<<"\n  ";
+//         if(neurons[i]->GetActivated()){
+//             count++;
+//             cout<<"● ";
+//         }
+//         else
+//             cout<<"○ ";
+//     }
+//     cout<<"\n>activated: "<<count<<endl;
+// }
+
 int Brain::RandomWeight(){
     int w=WEIGHT_BIAS;
     for(int i=0;i<WEIGHT_RANGE;i++)
         w+=randnnn(-1,1);
-    return ;
+    return w;
 }
-void Brain::Mutate(MUTATION m){
-    switch (m)
-    {
+
+int Brain::Mutate(MUTATION m){
+    int success=1;
+    switch (m){
     case ADD_NEURON:
-        AddNeuron();
+        AddNeuron(nullptr,nullptr);
         break;
     case ADD_SYNAPSE:
-        AddSynapse(nullptr,nullptr);
+        success=AddSynapse(nullptr,nullptr);
+        
         break;
     // case DEL_SYNAPSE:
     //     DelSynapse();
     //     break;
     default:
         break;
-    }   
+    } 
+    return success;
 }
-void Brain::AddNeuron(){
+
+void Brain::AddNeuron(Neuron* prev, Neuron* next){
 
     //instantiate new neuron object
     Neuron* nn=new Neuron(num_neurons++);
@@ -125,11 +190,12 @@ void Brain::AddNeuron(){
     log.push(addneuron);
 
     //make initial connections
-    AddSynapse(nullptr,nn);
-    AddSynapse(nn,nullptr);
+    AddSynapse(prev,nn);
+    AddSynapse(nn,next);
     return;
 }
-void Brain::AddSynapse(Neuron* from, Neuron* to){
+
+int Brain::AddSynapse(Neuron* from, Neuron* to){
     //select two random neurons and connect them
     //input neurons are not selected for next neuron
     //output neurons are not selected for prev neuron
@@ -156,10 +222,10 @@ void Brain::AddSynapse(Neuron* from, Neuron* to){
     }
     else n_to=to;
 
-    //if connection already exists, return
+    //if connection already exists, return 0
     for( int i=0;i<n_from->nexts.size();i++)
         if(n_from->nexts[i]==n_to)
-            return;
+            return ;
     
     //give random weight
     weight=RandomWeight();
@@ -171,7 +237,10 @@ void Brain::AddSynapse(Neuron* from, Neuron* to){
     //add log
     MLog addsynapse={ADD_SYNAPSE,n_from,n_to,weight};
     log.push(addsynapse);
+    
+    return 1;
 }
+
 void Brain::ModWeight(Neuron* from, Neuron* to, int add){
     //four cases:
     //1. from->to : but not sure two are connected
@@ -231,62 +300,91 @@ void Brain::ModWeight(Neuron* from, Neuron* to, int add){
     log.push(modweight);
 }
 
-void Brain::ShowStatus(){
-    int count=0;
-    cout<<"\n\n=========================================";
-    cout<<"  ";
-    for(int i=0;i<num_neurons;i++){
-        if(i%100==0)
-            cout<<"\n  ";
-        if(neurons[i]->GetActivated()){
-            count++;
-            cout<<"● ";
-        }
-        else
-            cout<<"○ ";
-    }
-    cout<<"\n>activated: "<<count<<endl;
-}
-void Brain::Initialize(){
-    //initialize neurons
 
-    int count=0;
-    
-    //input neurons
-    for(;count<num_inputs;count++){
-        // !! Neuron should be deleted !!
-        neurons.push_back(new Neuron(count,INPUT_NEURON));
-        num_neurons++;
-    }
-
-    //output neurons
-    for(;count<num_outputs;count++){
-        // !! Neuron should be deleted !!
-        neurons.push_back(new Neuron(count,OUTPUT_NEURON));
-        num_neurons++;
-    }
-    //add minimum neurons. 
-    //min num of neuron(except for in/out neurons) is min(num_input,num_output)
-    int min=num_inputs<num_outputs?num_inputs:num_outputs;
-    for(int i=0;i<min;i++){
-        AddNeuron();
-    }
-}
 void Brain::CheckActive(){
     for(auto neu : neurons){
         neu->CheckActive();
     }
 }
+
 void Brain::Propagate(){
     for(auto neu : neurons){
         neu->Propagate();
     }
 }
+
 void Brain::Update(){
     //GetInputSignal();
     CheckActive();
     Propagate();
     //SetOuptputSignal();
+}
+
+
+void Brain::ManualControl(){
+    bool refresh=true;
+    bool run=true;
+    while(run){
+        if(refresh){
+            cout<<"\n\n########################################################\n";
+            cout<<"#[ "<<name<<" ]\n";
+            cout<<"# >neurons(in/out/inter): "<<num_inputs<<" / "<<num_outputs<<" / "<<num_neurons-num_inputs-num_outputs<<"\n";
+            cout<<"#"<<endl;
+            cout<<"# 0)initialize  1)run  2)show neuron  3)show all neurons\n";
+            cout<<"# 10)add neuron  11)add synapse  12)modify weight\n";
+            cout<<"# 100)exit  101)refresh"<<endl;
+            cout<<"########################################################\n";
+            cout<<endl;
+            refresh=false;
+        }
+
+        cout<<">> ";
+        int command;
+        cin>>command;
+        switch (command){
+        case 100:
+            run=false;
+            break;
+        case 101:
+            refresh=true;
+            break;
+        case 0:
+            Initialize();
+            cout<<" $initialize done"<<endl;
+            refresh=true;
+            break;
+        case 1:
+            
+            break;
+        case 2:
+            cout<<"index: ";
+            int ind;
+            cin>>ind;
+            if(ind >=0 || ind<num_neurons){
+                neurons[ind]->ShowStatus();
+            }
+            break;
+        case 3:
+            for(auto neu:neurons)
+                neu->ShowStatus();
+            break;
+        case 10:
+            Mutate(ADD_NEURON);
+            cout<<" $added neuron";
+            break;
+        case 11:
+            Mutate(ADD_SYNAPSE);        
+            break;
+        case 12:
+            Mutate(MOD_WEIGHT);        
+            break;
+        case 6:
+            
+            break;
+        default:
+            break;
+        }
+    }
 }
 
 //////////////////////////////////////
@@ -297,6 +395,7 @@ Body::Body(int _x, int _y){
     g=127;
     b=127;
 }
+
 void Body::GetInput(){
 
 }
