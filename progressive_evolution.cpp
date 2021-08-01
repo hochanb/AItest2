@@ -3,15 +3,29 @@ using namespace newai;
 //////////////////////////////////////
 
 
+namespace newai{
 
 int randnnn(int start, int end){
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> dis(start, end); //p=1/2
+    if(end<start) return start;
+    std::uniform_int_distribution<int> dis(start, end); 
     return dis(gen);
 }
 
+string MLogToString(MLog mlog){
+    MUTATION mu=mlog.m;
+    if(mu==ADD_NEURON) 
+        return "[ADD    NEURON] #"+to_string(mlog.neuron_prev);
+    else if(mu==ADD_SYNAPSE) 
+        return "[ADD   SYNAPSE] #"+to_string(mlog.neuron_prev)+" -> #"+to_string(mlog.neuron_next)
+                +" ["+to_string(mlog.weight)+"]";
+    else if(mu==MOD_WEIGHT)
+        return "[MODIFY WEIGHT] #"+to_string(mlog.neuron_prev)+" -> #"+to_string(mlog.neuron_next)
+                +" ["+to_string(mlog.weight)+"]";
+}
 
+}
 //////////////////////////////////////
 Neuron::Neuron(int _index){
     index=_index;
@@ -170,9 +184,9 @@ int Brain::Mutate(MUTATION m){
         success=AddSynapse(nullptr,nullptr);
         
         break;
-    // case DEL_SYNAPSE:
-    //     DelSynapse();
-    //     break;
+    case MOD_WEIGHT:
+        ModWeight(nullptr,nullptr,0);
+        break;
     default:
         break;
     } 
@@ -186,8 +200,8 @@ void Brain::AddNeuron(Neuron* prev, Neuron* next){
     neurons.push_back(nn);
 
     //log
-    MLog addneuron={ADD_NEURON,nn,nullptr,0};
-    log.push(addneuron);
+    MLog addneuron={ADD_NEURON,nn->GetIndex(),-1,0};
+    log.push_back(addneuron);
 
     //make initial connections
     AddSynapse(prev,nn);
@@ -225,7 +239,7 @@ int Brain::AddSynapse(Neuron* from, Neuron* to){
     //if connection already exists, return 0
     for( int i=0;i<n_from->nexts.size();i++)
         if(n_from->nexts[i]==n_to)
-            return ;
+            return 0;
     
     //give random weight
     weight=RandomWeight();
@@ -235,19 +249,18 @@ int Brain::AddSynapse(Neuron* from, Neuron* to){
     n_to->AddPrev(n_from);
     
     //add log
-    MLog addsynapse={ADD_SYNAPSE,n_from,n_to,weight};
-    log.push(addsynapse);
+    MLog addsynapse={ADD_SYNAPSE,n_from->GetIndex(),n_to->GetIndex(),weight};
+    log.push_back(addsynapse);
     
     return 1;
 }
 
-void Brain::ModWeight(Neuron* from, Neuron* to, int add){
+void Brain::ModWeight(Neuron* from, Neuron* to, int w){
     //four cases:
     //1. from->to : but not sure two are connected
     //2. rand->to
     //3. from->rand
     //4. rand->rand
-
     int i_from, i_to; //n_from==n_to->prevs[i_from] / n_to==n_from->nexts[i_to]
     Neuron* n_from;
     Neuron* n_to;
@@ -270,22 +283,22 @@ void Brain::ModWeight(Neuron* from, Neuron* to, int add){
                 n_to=from->nexts[i_to];
             }
             //find i_from
-            for(int i=0;i<to->prevs.size();i++)
-                if(to->prevs[i]==from){
+            for(int i=0;i<n_to->prevs.size();i++)
+                if(n_to->prevs[i]==n_from){
                     i_from=i;
                     break;
                 }
         }
         else{ //from==nullptr
             if(to==nullptr)
-                to=neurons[randnnn(num_inputs+num_outputs,num_neurons-1)]; //interneuron only
+                to=neurons[randnnn(num_inputs,num_neurons-1)]; //output and inter
             n_to=to;
-            i_from=randnnn(0,to->prevs.size()-1);
-            n_from=to->prevs[i_from];
+            i_from=randnnn(0,n_to->prevs.size()-1);
+            n_from=n_to->prevs[i_from];
 
             //find i_to
-            for(int i=0;i<from->nexts.size();i++)
-                if(from->nexts[i]==to){
+            for(int i=0;i<n_from->nexts.size();i++)
+                if(n_from->nexts[i]==n_to){
                     i_to=i;
                     break;
                 }
@@ -293,11 +306,11 @@ void Brain::ModWeight(Neuron* from, Neuron* to, int add){
     }
     while(n_from==nullptr || n_to==nullptr); //if unconnected neuron has been chosen, retry
     
-    int w=RandomWeight();
-    n_from->weights[i_to]=w;
+    int weight=w?w:RandomWeight();
+    n_from->weights[i_to]=weight;
 
-    MLog modweight={MOD_WEIGHT,n_from,n_to,w};
-    log.push(modweight);
+    MLog modweight={MOD_WEIGHT,n_from->GetIndex(),n_to->GetIndex(),weight};
+    log.push_back(modweight);
 }
 
 
@@ -320,19 +333,34 @@ void Brain::Update(){
     //SetOuptputSignal();
 }
 
+int Brain::GetTotalSynapse(){
+    int c=0;
+    for(auto neu:neurons){
+        c+=neu->nexts.size();
+    }
+    return c;
+}
 
 void Brain::ManualControl(){
     bool refresh=true;
     bool run=true;
     while(run){
         if(refresh){
+            int ts=GetTotalSynapse();
+            int nn=num_neurons;
             cout<<"\n\n########################################################\n";
             cout<<"#[ "<<name<<" ]\n";
-            cout<<"# >neurons(in/out/inter): "<<num_inputs<<" / "<<num_outputs<<" / "<<num_neurons-num_inputs-num_outputs<<"\n";
+            cout<<"# >neurons(in/out/inter/total): "<<num_inputs<<" / "<<num_outputs<<" / "<<num_neurons-num_inputs-num_outputs
+                <<" / "<<num_neurons<<"\n";
+            cout.precision(4);
+            cout<<"# >total synapses: "<<ts<<"  ("
+                <<(double)ts/(double)nn<<" | "<<(double)ts/(double)nn/(double)nn<<"%)\n";
+            cout<<"# >logs: "<<log.size()<<"\n";
             cout<<"#"<<endl;
             cout<<"# 0)initialize  1)run  2)show neuron  3)show all neurons\n";
-            cout<<"# 10)add neuron  11)add synapse  12)modify weight\n";
-            cout<<"# 100)exit  101)refresh"<<endl;
+            cout<<"# 10)add neuron  11)add synapse  12)modify weight  13)random mutation\n";
+            cout<<"# 20)show log  21)show recent(10) logs  22)show all logs\n";
+            cout<<"# 100)refresh  999)exit\n";
             cout<<"########################################################\n";
             cout<<endl;
             refresh=false;
@@ -341,48 +369,91 @@ void Brain::ManualControl(){
         cout<<">> ";
         int command;
         cin>>command;
+        int ind;
         switch (command){
-        case 100:
+        case 999:
             run=false;
             break;
-        case 101:
+        case 100:
             refresh=true;
             break;
-        case 0:
+        case 0:{
             Initialize();
             cout<<" $initialize done"<<endl;
             refresh=true;
             break;
+        }
         case 1:
             
             break;
-        case 2:
+        case 2:{
             cout<<"index: ";
-            int ind;
             cin>>ind;
-            if(ind >=0 || ind<num_neurons){
-                neurons[ind]->ShowStatus();
+            if(ind <0 || ind>=num_neurons){
+                cout<<" $invalid index"<<endl;
+                break;
             }
+            neurons[ind]->ShowStatus();
             break;
-        case 3:
+        }
+        case 3:{
             for(auto neu:neurons)
                 neu->ShowStatus();
             break;
-        case 10:
+        }
+        case 10:{
             Mutate(ADD_NEURON);
-            cout<<" $added neuron";
+            cout<<" $"<<MLogToString(log[log.size()-3])<<endl;
+            cout<<" $"<<MLogToString(log[log.size()-2])<<endl;
+            cout<<" $"<<MLogToString(log[log.size()-1])<<endl;
             break;
-        case 11:
-            Mutate(ADD_SYNAPSE);        
+        }
+        case 11:{
+            if(Mutate(ADD_SYNAPSE))
+                cout<<" $"<<MLogToString(log.back())<<endl;
             break;
-        case 12:
-            Mutate(MOD_WEIGHT);        
+        }
+        case 12:{
+            Mutate(MOD_WEIGHT);    
+            cout<<" $"<<MLogToString(log.back())<<endl;
             break;
-        case 6:
-            
+        }
+        case 13:{
+            MUTATION r=(MUTATION)randnnn(0,2);
+            int success=Mutate(r);
+            if(r==ADD_NEURON){
+                cout<<" $"<<MLogToString(log[log.size()-3])<<endl;
+                cout<<" $"<<MLogToString(log[log.size()-2])<<endl;
+                cout<<" $"<<MLogToString(log[log.size()-1])<<endl;
+            }
+            else if(success)
+                cout<<" $"<<MLogToString(log.back())<<endl;
             break;
-        default:
+        }
+        case 20:{
+            cout<<"index: ";
+            cin>>ind;
+            if(ind<0 || ind>=log.size()) {
+                cout<<" $invalid index"<<endl;
+                break;
+            }
+            cout<<" #"<<ind<<"  "<<MLogToString(log[ind])<<endl;
             break;
+        }
+        case 21:{
+            cout<<" $Logs:"<<endl;
+            int s=log.size();
+            int min= s<10 ? s:10;
+            for(int i=0;i<min;i++)
+                cout<<" #"<<s+i-min<<"  "<<MLogToString(log[s+i-min])<<endl;
+            break;
+        }
+        case 22:{
+            cout<<" $Logs:"<<endl;
+            for(int i=0;i<log.size();i++)
+                cout<<" #"<<i<<"  "<<MLogToString(log[i])<<endl;
+            break;
+        }
         }
     }
 }

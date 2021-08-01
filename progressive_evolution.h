@@ -7,11 +7,13 @@
 #include <random>
 using namespace std;
 
-#define MAX_NUM 1000
-#define WEIGHT_BIAS 50 //bias, mean
-#define WEIGHT_RANGE 100 //+- range
+#define MAX_NUM 100
+#define WEIGHT_BIAS 10 //bias, mean
+#define WEIGHT_RANGE 200 //+- range
 
 namespace newai{
+
+
 
 class Neuron; //declaration
 
@@ -29,11 +31,15 @@ enum NEURON_TYPE{
 
 typedef struct Mutation_Log{
     MUTATION m;
-    Neuron* neuron_prev; //시냅스 전뉴런
-    Neuron* neuron_next; //시냅스 후뉴런
-    int weight; //가중치
+    //Neuron* neuron_prev; //시냅스 전뉴런
+    //Neuron* neuron_next; //시냅스 후뉴런
+    int neuron_prev; //전뉴런 ind. empty=-1
+    int neuron_next; //후뉴런 ind. empty=-1
+    int weight; //가중치 empty=0
     
 }MLog;
+
+string MLogToString(MLog mlog);
 
 class Neuron{
     int index=0; //index of this neuron
@@ -74,13 +80,14 @@ class Brain{
     void AddNeuron(Neuron* prev, Neuron* next); //nullptr->random sel
     int AddSynapse(Neuron* from, Neuron* to); //nullptr->random sel 0:fail 1:success
     //void DelSynapse(Neuron* from, Neuron* to); //nullptr->random sel
-    void ModWeight(Neuron* from, Neuron* to, int add); //nullptr, 0->random sel
+    void ModWeight(Neuron* from, Neuron* to, int w); //nullptr, 0->random sel
     void Terminate();
     int Mutate(MUTATION m);
+    int GetTotalSynapse();
 
     public:
     Brain(string name, int num_input,int num_output);
-    stack<MLog> log;
+    vector<MLog> log;
     vector<Neuron*> neurons; //for convenience and speed, neurons of brain is set public
     void ManualControl();
     void Initialize();
