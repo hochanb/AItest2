@@ -77,11 +77,13 @@ class Brain{
     //int MSI; //mean sign intensity
 
     static int RandomWeight();
+    void ShowStatus();
     void AddNeuron(Neuron* prev, Neuron* next); //nullptr->random sel
     int AddSynapse(Neuron* from, Neuron* to); //nullptr->random sel 0:fail 1:success
     //void DelSynapse(Neuron* from, Neuron* to); //nullptr->random sel
     void ModWeight(Neuron* from, Neuron* to, int w); //nullptr, 0->random sel
-    void Terminate();
+    //void Terminate();
+    // void Run();
     int Mutate(MUTATION m);
     int GetTotalSynapse();
 
@@ -91,6 +93,8 @@ class Brain{
     vector<Neuron*> neurons; //for convenience and speed, neurons of brain is set public
     void ManualControl();
     void Initialize();
+    void SetInput(int* inputs); //get input values from int array. array size must be num_inputs
+    void GetOutput(int* outputs); //set output values to int array. array size must be num_outputs
     void Propagate(); //propagates one time
     void CheckActive(); //check
     void Update(); //input->check->propagate->output->input->...
@@ -106,7 +110,7 @@ class Object{
     int x;
     int y;
 
-    //color dimensions. 0~255
+    //color dimensions. 0~255 -> 0~63
     int r;
     int g;
     int b;

@@ -150,22 +150,7 @@ void Brain::Initialize(){
     }
 }
 
-// void Brain::ShowStatus(){
-//     int count=0;
-//     cout<<"\n\n=========================================";
-//     cout<<"  ";
-//     for(int i=0;i<num_neurons;i++){
-//         if(i%100==0)
-//             cout<<"\n  ";
-//         if(neurons[i]->GetActivated()){
-//             count++;
-//             cout<<"● ";
-//         }
-//         else
-//             cout<<"○ ";
-//     }
-//     cout<<"\n>activated: "<<count<<endl;
-// }
+
 
 int Brain::RandomWeight(){
     int w=WEIGHT_BIAS;
@@ -326,6 +311,15 @@ void Brain::Propagate(){
     }
 }
 
+void Brain::SetInput(int * inputs){
+    for(int i=0;i<num_inputs;i++)
+        neurons[i]->AddBuffer(inputs[i]);
+}
+void Brain::GetOutput(int* outputs){
+    for(int i=0;i<num_outputs;i++){
+        outputs[i]=neurons[num_inputs+i]->GetActivated(); //output format is 0 or 1 
+    }
+}
 void Brain::Update(){
     //GetInputSignal();
     CheckActive();
@@ -341,9 +335,27 @@ int Brain::GetTotalSynapse(){
     return c;
 }
 
+void Brain::ShowStatus(){
+    int count=0;
+    cout<<"\n\n=========================================";
+    cout<<"  ";
+    for(int i=0;i<num_neurons;i++){
+        if(i%100==0)
+            cout<<"\n  ";
+        if(neurons[i]->GetActivated()){
+            count++;
+            cout<<"● ";
+        }
+        else
+            cout<<"○ ";
+    }
+    cout<<"\n>activated: "<<count<<endl;
+}
+
 void Brain::ManualControl(){
     bool refresh=true;
     bool run=true;
+    int* inputArray=new int[num_inputs];
     while(run){
         if(refresh){
             int ts=GetTotalSynapse();
@@ -354,12 +366,13 @@ void Brain::ManualControl(){
                 <<" / "<<num_neurons<<"\n";
             cout.precision(4);
             cout<<"# >total synapses: "<<ts<<"  ("
-                <<(double)ts/(double)nn<<" | "<<(double)ts/(double)nn/(double)nn<<"%)\n";
+                <<(double)ts/(double)nn<<" | "<<100*(double)ts/(double)nn/(double)nn<<"%)\n";
             cout<<"# >logs: "<<log.size()<<"\n";
             cout<<"#"<<endl;
             cout<<"# 0)initialize  1)run  2)show neuron  3)show all neurons\n";
             cout<<"# 10)add neuron  11)add synapse  12)modify weight  13)random mutation\n";
             cout<<"# 20)show log  21)show recent(10) logs  22)show all logs\n";
+            cout<<"# 30)set inputs\n";
             cout<<"# 100)refresh  999)exit\n";
             cout<<"########################################################\n";
             cout<<endl;
@@ -383,9 +396,23 @@ void Brain::ManualControl(){
             refresh=true;
             break;
         }
-        case 1:
-            
+        case 1:{
+            int count=0;
+            do{
+                cout<<"count(exit=-1): ";
+                cin>>count;
+                for(int i=0;i<count;i++){
+                    system("clear");
+                    SetInput(inputArray);
+                    CheckActive();
+                    ShowStatus();
+                    Propagate();
+                    //GetOutput(outputArray);
+                }
+            }while(count!=-1);
+            refresh=true;
             break;
+        }
         case 2:{
             cout<<"index: ";
             cin>>ind;
@@ -454,8 +481,22 @@ void Brain::ManualControl(){
                 cout<<" #"<<i<<"  "<<MLogToString(log[i])<<endl;
             break;
         }
+        case 30:{
+            cout<<" $current input:\n  > ";
+            for(int i=0;i<num_inputs;i++)
+                cout<<i<<")"<<inputArray[i]<<"  ";
+            cout<<endl;
+            for(int i=0;i<num_inputs;i++){
+                cout<<" "<<i<<": ";
+                cin>>inputArray[i];
+            }
+            cout<<" $changed inputs"<<endl;
+            break;
+        }
         }
     }
+
+    delete[] inputArray;
 }
 
 //////////////////////////////////////
